@@ -28,7 +28,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div style="min-height:100vh;background:#F26F21;display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;">
+  <div style="min-height:100vh;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif;">
     <div style="background:#ffffff;border-radius:24px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 24px 64px -12px rgba(242,111,33,0.35);">
 
       <!-- Logo -->
@@ -97,8 +97,8 @@ async function handleLogin() {
     <!-- Footer -->
     <div style="position:fixed;bottom:20px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:8px;">
       <img src="/hexaprime-light.png" alt="HexaPrime Solutions" style="height:18px;width:18px;object-fit:contain;" />
-      <span style="font-size:12px;color:rgba(255,255,255,0.75);font-weight:500;">
-        A product of <span style="color:#fff;font-weight:700;">HexaPrime Solutions</span>
+      <span style="font-size:12px;color:rgba(0,0,0,0.5);font-weight:500;">
+        A product of <span style="color:#000;font-weight:700;">HexaPrime Solutions</span>
       </span>
     </div>
   </div>
