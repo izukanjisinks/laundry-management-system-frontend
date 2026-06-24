@@ -86,6 +86,7 @@ const verifyLabel = computed(() => {
 
 // PDF receipt modal
 const showReceipt = ref(false)
+const receiptOrder = computed(() => order.value!)
 const pdfReady = ref(false)
 
 watch(showReceipt, async (open) => {
@@ -187,9 +188,20 @@ const statusMeta: Record<OrderStatus, { bg: string; fg: string; label: string }>
               </div>
             </div>
           </div>
-          <span :style="{ fontSize: '12.5px', fontWeight: '700', padding: '6px 13px', borderRadius: '9px', background: paymentMeta[order.payment_status]?.bg ?? '#eef0f2', color: paymentMeta[order.payment_status]?.fg ?? '#6b7280' }">
-            {{ order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1) }}
-          </span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span :style="{ fontSize: '12.5px', fontWeight: '700', padding: '6px 13px', borderRadius: '9px', background: paymentMeta[order.payment_status]?.bg ?? '#eef0f2', color: paymentMeta[order.payment_status]?.fg ?? '#6b7280' }">
+              {{ order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1) }}
+            </span>
+            <button
+              @click="showReceipt = true"
+              title="Print receipt"
+              style="width:36px;height:36px;border-radius:10px;border:1px solid #ece8e3;background:#fff;color:#5b6472;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div style="display:flex;gap:24px;margin-top:20px;align-items:flex-start;">
@@ -282,5 +294,73 @@ const statusMeta: Record<OrderStatus, { bg: string; fg: string; label: string }>
       </div>
 
     </div>
+
+    <!-- Receipt PDF modal -->
+    <Teleport to="body">
+      <div
+        v-if="showReceipt && order"
+        style="position:fixed;inset:0;background:rgba(34,40,49,0.5);display:flex;align-items:stretch;justify-content:flex-end;z-index:1000;"
+        @click.self="showReceipt = false"
+      >
+        <div style="width:min(680px,100vw);background:#fff;display:flex;flex-direction:column;box-shadow:-24px 0 48px -12px rgba(0,0,0,0.18);">
+
+          <!-- Sheet header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #ece8e3;flex:none;">
+            <div>
+              <div style="font-size:15px;font-weight:700;">Receipt</div>
+              <div style="font-size:12.5px;color:#9aa1ab;margin-top:2px;">{{ wpId(receiptOrder.order_number) }} · {{ receiptOrder.customer?.name }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <!-- Download link -->
+              <PDFDownloadLink v-if="pdfReady" :file-name="`WashPoint-${wpId(receiptOrder.order_number)}.pdf`">
+                <template #default>
+                  <OrderReceiptDocument :order="receiptOrder" />
+                </template>
+                <template #label>
+                  <button style="display:flex;align-items:center;gap:7px;border:none;background:#F26F21;color:#fff;font:inherit;font-weight:700;font-size:13px;padding:9px 15px;border-radius:10px;cursor:pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download PDF
+                  </button>
+                </template>
+              </PDFDownloadLink>
+              <!-- Close -->
+              <button
+                @click="showReceipt = false"
+                style="width:34px;height:34px;border-radius:9px;border:1px solid #ece8e3;background:#fff;color:#5b6472;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- PDF preview -->
+          <div style="flex:1;min-height:0;overflow:hidden;background:#f3f0ec;display:flex;align-items:center;justify-content:center;">
+            <div v-if="!pdfReady" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:#9aa1ab;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="animation:spin 1s linear infinite;">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              <span style="font-size:13.5px;">Generating preview…</span>
+            </div>
+            <PDFViewer
+              v-else
+              :key="receiptOrder.id"
+              :show-toolbar="false"
+              style="width:100%;height:100%;"
+            >
+              <OrderReceiptDocument :order="receiptOrder" />
+            </PDFViewer>
+          </div>
+
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
