@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ceereals/vue-pdf": "^0.3.1",
     "@lucide/vue": "^1.21.0",
     "@tanstack/vue-table": "^8.21.3",
     "@unovis/ts": "^1.6.6",

@@ -12,12 +12,12 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/orders',
+      redirect: '/dashboard',
     },
     {
-      path: '/orders',
-      name: 'orders',
-      component: () => import('@/views/orders/OrdersView.vue'),
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('@/views/dashboard/DashboardView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -33,9 +33,15 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/customers',
-      name: 'customers',
-      component: () => import('@/views/customers/CustomersView.vue'),
+      path: '/orders',
+      name: 'orders',
+      component: () => import('@/views/orders/OrdersView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/pickup',
+      name: 'pickup',
+      component: () => import('@/views/orders/PickupView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -51,10 +57,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/dashboard/DashboardView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
+      path: '/customers',
+      name: 'customers',
+      component: () => import('@/views/customers/CustomersView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/staff',
@@ -73,11 +79,11 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresAdmin && !auth.isAdmin) {
-    return { name: 'orders' }
+    return { name: 'dashboard' }
   }
 
   if (to.name === 'login' && auth.isAuthenticated) {
-    return { name: 'orders' }
+    return { name: 'dashboard' }
   }
 })
 
