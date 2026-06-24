@@ -97,6 +97,29 @@ watch(showReceipt, async (open) => {
   }
 })
 
+// Mark as paid
+const paymentMethods = [
+  { key: 'cash', label: 'Cash' },
+  { key: 'card', label: 'Card' },
+  { key: 'transfer', label: 'Transfer' },
+]
+const showPaymentPanel = ref(false)
+const selectedPaymentMethod = ref<'cash' | 'card' | 'transfer' | null>(null)
+const markingPaid = ref(false)
+
+async function markAsPaid() {
+  if (!order.value || !selectedPaymentMethod.value) return
+  markingPaid.value = true
+  try {
+    await ordersApi.updatePayment(order.value.id, 'paid', selectedPaymentMethod.value)
+    order.value.payment_status = 'paid'
+    order.value.payment_method = selectedPaymentMethod.value
+    showPaymentPanel.value = false
+  } finally {
+    markingPaid.value = false
+  }
+}
+
 // Payment status
 const paymentMeta: Record<string, { bg: string; fg: string }> = {
   unpaid:  { bg: '#fdeceb', fg: '#d6453d' },
@@ -261,6 +284,53 @@ const statusMeta: Record<OrderStatus, { bg: string; fg: string; label: string }>
                 <path d="M20 6L9 17l-5-5"/>
               </svg>
               Payment settled
+            </div>
+
+            <!-- Mark as paid panel -->
+            <div v-if="order.payment_status !== 'paid'" style="margin-bottom:14px;">
+              <button
+                v-if="!showPaymentPanel"
+                @click="showPaymentPanel = true"
+                style="width:100%;border:1px solid #ece8e3;background:#fff;color:#5b6472;font:inherit;font-weight:700;font-size:13.5px;padding:12px;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                </svg>
+                Mark as paid
+              </button>
+              <div v-else style="border:1px solid #FBD9C2;border-radius:12px;padding:13px;">
+                <div style="font-size:12px;font-weight:700;color:#aab0ba;letter-spacing:0.3px;margin-bottom:9px;">SELECT PAYMENT METHOD</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:11px;">
+                  <button
+                    v-for="m in paymentMethods"
+                    :key="m.key"
+                    @click="selectedPaymentMethod = m.key as any"
+                    :style="{
+                      border: selectedPaymentMethod === m.key ? '1px solid #FBD9C2' : '1px solid #ece8e3',
+                      background: selectedPaymentMethod === m.key ? '#FEF1E9' : '#fff',
+                      color: selectedPaymentMethod === m.key ? '#D85D14' : '#5b6472',
+                      font: 'inherit', fontWeight: '700', fontSize: '13px',
+                      padding: '9px 6px', borderRadius: '9px', cursor: 'pointer',
+                    }"
+                  >{{ m.label }}</button>
+                </div>
+                <div style="display:flex;gap:7px;">
+                  <button
+                    @click="showPaymentPanel = false; selectedPaymentMethod = null"
+                    style="flex:1;border:1px solid #ece8e3;background:#fff;color:#5b6472;font:inherit;font-weight:700;font-size:13px;padding:10px;border-radius:10px;cursor:pointer;"
+                  >Cancel</button>
+                  <button
+                    @click="markAsPaid"
+                    :disabled="!selectedPaymentMethod || markingPaid"
+                    :style="{
+                      flex: 2, border: 'none', font: 'inherit', fontWeight: '700', fontSize: '13px',
+                      padding: '10px', borderRadius: '10px', cursor: selectedPaymentMethod ? 'pointer' : 'not-allowed',
+                      background: selectedPaymentMethod ? '#F26F21' : '#f1eeea',
+                      color: selectedPaymentMethod ? '#fff' : '#aab0ba',
+                    }"
+                  >{{ markingPaid ? 'Saving…' : 'Confirm payment' }}</button>
+                </div>
+              </div>
             </div>
 
             <!-- Collected banner -->

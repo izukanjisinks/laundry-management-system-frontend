@@ -2,21 +2,31 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { reportsApi } from '@/api/reports'
+import { ordersApi } from '@/api/orders'
 import SiteHeader from '@/components/layout/SiteHeader.vue'
-import type { ReportSummary, DailyCount } from '@/types'
+import type { ReportSummary, DailyCount, Order } from '@/types'
 
 const router = useRouter()
 const summary = ref<ReportSummary | null>(null)
+const readyOrders = ref<Order[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const { data } = await reportsApi.summary()
-    summary.value = data.data
+    const [summaryRes, readyRes] = await Promise.all([
+      reportsApi.summary(),
+      ordersApi.list('ready'),
+    ])
+    summary.value = summaryRes.data.data
+    readyOrders.value = readyRes.data.data ?? []
   } finally {
     loading.value = false
   }
 })
+
+function initials(name: string) {
+  return name?.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase() ?? '?'
+}
 
 // Build SVG area chart path from daily_orders
 const chartPath = computed(() => {
@@ -31,7 +41,23 @@ const chartPath = computed(() => {
     y: H - pad - (d.count / maxCount) * (H - pad * 2),
     count: d.count,
   }))
-  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+  // Build smooth cubic bezier path through points
+  function smooth(points: { x: number; y: number }[]) {
+    if (points.length < 2) return ''
+    let d = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1]
+      const curr = points[i]
+      const tension = 0.4
+      const cpx = prev.x + (curr.x - prev.x) * tension
+      const cpy = prev.y
+      const cpx2 = curr.x - (curr.x - prev.x) * tension
+      const cpy2 = curr.y
+      d += ` C${cpx.toFixed(1)},${cpy.toFixed(1)} ${cpx2.toFixed(1)},${cpy2.toFixed(1)} ${curr.x.toFixed(1)},${curr.y.toFixed(1)}`
+    }
+    return d
+  }
+  const line = smooth(pts)
   const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`
   const peak = pts.reduce((a, b) => (b.count > a.count ? b : a), pts[0])
   return { area, line, peakX: peak.x, peakY: peak.y }
@@ -120,7 +146,7 @@ const inProcess = computed(() => {
         </div>
       </div>
 
-      <div style="display:flex;gap:18px;margin-top:18px;align-items:flex-start;">
+      <div style="display:flex;gap:18px;margin-top:18px;align-items:stretch;">
 
         <!-- Left column: chart + workload -->
         <div style="flex:1.7;min-width:0;display:flex;flex-direction:column;gap:18px;">
@@ -176,14 +202,33 @@ const inProcess = computed(() => {
         </div>
 
         <!-- Right column: ready for pickup -->
-        <div style="width:340px;flex:none;display:flex;flex-direction:column;gap:18px;">
-          <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:20px;">
+        <div style="width:420px;flex:none;display:flex;flex-direction:column;gap:18px;">
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:20px;flex:1;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
               <div style="font-size:16px;font-weight:700;">Ready for pickup</div>
               <button @click="router.push('/pickup')" style="border:none;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:#F26F21;cursor:pointer;">View all</button>
             </div>
-            <div style="color:#9aa1ab;font-size:13px;text-align:center;padding:20px 0;">
-              Open the Pickup screen to see ready orders
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div
+                v-for="o in readyOrders"
+                :key="o.id"
+                @click="router.push(`/orders/${o.id}`)"
+                style="display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid #ece8e3;border-radius:12px;cursor:pointer;"
+                @mouseenter="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#faf8f6')"
+                @mouseleave="(e: MouseEvent) => ((e.currentTarget as HTMLElement).style.background = '#fff')"
+              >
+                <div style="width:36px;height:36px;border-radius:10px;background:#e8f7ee;color:#1f9d57;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;flex:none;">
+                  {{ initials(o.customer?.name ?? '') }}
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ o.customer?.name ?? '—' }}</div>
+                  <div style="font-size:11.5px;color:#9aa1ab;">WP-{{ o.order_number }} · {{ o.items.reduce((a, b) => a + b.qty, 0) }} items</div>
+                </div>
+                <div style="font-size:13px;font-weight:700;flex:none;">K{{ Number(o.total_price).toFixed(2) }}</div>
+              </div>
+              <div v-if="readyOrders.length === 0" style="color:#9aa1ab;font-size:13px;text-align:center;padding:20px 0;">
+                No orders ready for pickup
+              </div>
             </div>
           </div>
 

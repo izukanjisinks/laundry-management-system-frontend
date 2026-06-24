@@ -115,7 +115,11 @@ async function submit() {
       service_type: serviceTab.value,
       items: orderItems.value.map((o) => ({ name: o.name, qty: o.qty, price: o.price })),
     })
-    router.push(`/orders/${data.data.id}`)
+    const orderId = data.data.id
+    if (paymentMethod.value) {
+      await ordersApi.updatePayment(orderId, 'paid', paymentMethod.value)
+    }
+    router.push(`/orders/${orderId}`)
   } catch (e: any) {
     error.value = e.response?.data?.error ?? 'Failed to create order'
   } finally {
