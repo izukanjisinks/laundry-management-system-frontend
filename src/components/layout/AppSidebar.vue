@@ -8,7 +8,8 @@ const auth = useAuthStore()
 
 function isActive(path: string) {
   if (path === '/orders/new') return route.path === '/orders/new'
-  if (path === '/orders') return route.path === '/orders' || (route.path.startsWith('/orders') && route.path !== '/orders/new')
+  if (path === '/orders/all') return route.path === '/orders/all'
+  if (path === '/orders') return route.path === '/orders'
   if (path === '/dashboard') return route.path === '/dashboard'
   if (path === '/customers') return route.path.startsWith('/customers')
   if (path === '/admin/staff') return route.path.startsWith('/admin')
@@ -77,6 +78,13 @@ function navStyle(path: string) {
         </svg>
         Processing
       </button>
+      <button @click="router.push('/orders/all')" :style="navStyle('/orders/all')">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>
+        </svg>
+        All Orders
+      </button>
       <button @click="router.push('/pickup')" :style="navStyle('/pickup')">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M6 7.5h12l-1 12.5H7L6 7.5z"/><path d="M9 7.5a3 3 0 0 1 6 0"/>
@@ -98,9 +106,10 @@ function navStyle(path: string) {
       </button>
       <button v-if="auth.isAdmin" @click="router.push('/admin/staff')" :style="navStyle('/admin/staff')">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 21V10M12 21V4M19 21v-7"/>
+          <circle cx="9" cy="8" r="3.4"/><path d="M3 20a6 6 0 0 1 12 0"/>
+          <path d="M16 5.6a3 3 0 0 1 0 5.8"/><path d="M21 20a5.5 5.5 0 0 0-4-5.3"/>
         </svg>
-        Reports
+        Users
       </button>
       <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:12px;font-weight:600;font-size:14px;color:#aeb4bd;">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

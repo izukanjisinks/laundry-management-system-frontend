@@ -30,4 +30,10 @@ export const ordersApi = {
 
   notifyReady: (id: string) =>
     client.post<{ message: string }>(`/orders/${id}/notify-ready`),
+
+  exportCsv: (status?: OrderStatus) =>
+    client.get('/orders/export', {
+      params: status ? { status } : undefined,
+      responseType: 'blob',
+    }),
 }

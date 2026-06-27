@@ -203,10 +203,11 @@ function dueLabel(order: Order) {
     <Teleport to="body">
       <div
         v-if="confirm"
-        style="position:fixed;inset:0;background:rgba(34,40,49,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;"
+        style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1000;"
         @click.self="cancelConfirm"
       >
-        <div style="background:#fff;border-radius:20px;padding:28px 28px 24px;width:360px;box-shadow:0 24px 48px -12px rgba(0,0,0,0.22);">
+        <div style="position:absolute;inset:0;background:rgba(34,40,49,0.45);backdrop-filter:blur(4px);"></div>
+        <div style="position:relative;background:#fff;border-radius:20px;padding:28px 28px 24px;width:360px;box-shadow:0 24px 48px -12px rgba(0,0,0,0.22);">
 
           <!-- Icon -->
           <div style="width:48px;height:48px;border-radius:14px;background:#FEF1E9;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">

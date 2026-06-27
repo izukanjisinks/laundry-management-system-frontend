@@ -44,6 +44,47 @@ function dueLabel(o: Order) {
   return new Date(o.due_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })
 }
 
+// Due date picker
+const editingDue = ref(false)
+const dueInput = ref('')        // yyyy-MM-dd for the native date input
+const savingDue = ref(false)
+
+// Map an ISO/date string to the yyyy-MM-dd value a date input expects.
+function toDateInput(d?: string | null) {
+  if (!d) return ''
+  const date = new Date(d)
+  if (Number.isNaN(date.getTime())) return ''
+  const tzOffset = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10)
+}
+
+function openDueEditor() {
+  if (!order.value) return
+  dueInput.value = toDateInput(order.value.due_at)
+  editingDue.value = true
+}
+
+async function saveDue() {
+  if (!order.value || savingDue.value) return
+  savingDue.value = true
+  try {
+    // Empty input clears the due date.
+    const due_at = dueInput.value ? new Date(dueInput.value).toISOString() : null
+    // The backend PUT is a full replace and requires items/service_type, so
+    // send the existing order fields alongside the new due date.
+    const { data } = await ordersApi.update(order.value.id, {
+      service_type: order.value.service_type,
+      items: order.value.items,
+      notes: order.value.notes,
+      due_at: due_at ?? undefined,
+    })
+    order.value = data.data
+    editingDue.value = false
+  } finally {
+    savingDue.value = false
+  }
+}
+
 const nextStatus = computed<OrderStatus | null>(() => {
   if (!order.value) return null
   const idx = statusFlow.indexOf(order.value.status)
@@ -172,9 +213,47 @@ const statusMeta: Record<OrderStatus, { bg: string; fg: string; label: string }>
             <span style="color:#9aa1ab;font-weight:500;">Service</span>
             <span style="font-weight:600;">{{ serviceLabels[order.service_type] ?? order.service_type }}</span>
           </div>
-          <div style="display:flex;justify-content:space-between;">
+          <div style="display:flex;justify-content:space-between;align-items:center;min-height:24px;">
             <span style="color:#9aa1ab;font-weight:500;">Due</span>
-            <span style="font-weight:600;">{{ dueLabel(order) }}</span>
+            <!-- Display mode: click to edit -->
+            <button
+              v-if="!editingDue"
+              @click="openDueEditor"
+              style="display:flex;align-items:center;gap:6px;border:none;background:transparent;font:inherit;font-weight:600;font-size:13.5px;color:#222831;cursor:pointer;padding:0;"
+              title="Set due date"
+            >
+              {{ dueLabel(order) }}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D85D14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+              </svg>
+            </button>
+            <!-- Edit mode: date input + save/cancel -->
+            <div v-else style="display:flex;align-items:center;gap:6px;">
+              <input
+                v-model="dueInput"
+                type="date"
+                style="border:1px solid #ece8e3;border-radius:8px;padding:4px 7px;font:inherit;font-size:12.5px;color:#222831;outline:none;"
+              />
+              <button
+                @click="saveDue"
+                :disabled="savingDue"
+                style="border:none;background:#F26F21;color:#fff;border-radius:8px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;"
+                title="Save"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6L9 17l-5-5"/>
+                </svg>
+              </button>
+              <button
+                @click="editingDue = false"
+                style="border:1px solid #ece8e3;background:#fff;color:#5b6472;border-radius:8px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;"
+                title="Cancel"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <div style="display:flex;justify-content:space-between;">
             <span style="color:#9aa1ab;font-weight:500;">Received</span>
@@ -369,10 +448,11 @@ const statusMeta: Record<OrderStatus, { bg: string; fg: string; label: string }>
     <Teleport to="body">
       <div
         v-if="showReceipt && order"
-        style="position:fixed;inset:0;background:rgba(34,40,49,0.5);display:flex;align-items:stretch;justify-content:flex-end;z-index:1000;"
+        style="position:fixed;inset:0;display:flex;align-items:stretch;justify-content:flex-end;z-index:1000;"
         @click.self="showReceipt = false"
       >
-        <div style="width:min(680px,100vw);background:#fff;display:flex;flex-direction:column;box-shadow:-24px 0 48px -12px rgba(0,0,0,0.18);">
+        <div style="position:absolute;inset:0;background:rgba(34,40,49,0.5);backdrop-filter:blur(4px);"></div>
+        <div style="position:relative;width:min(680px,100vw);background:#fff;display:flex;flex-direction:column;box-shadow:-24px 0 48px -12px rgba(0,0,0,0.18);">
 
           <!-- Sheet header -->
           <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #ece8e3;flex:none;">

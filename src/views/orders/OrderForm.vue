@@ -39,10 +39,25 @@ const paymentOpts = [
   { key: 'transfer', label: 'Transfer' },
 ]
 
+// Distribute each catalog item's price across the K50–K100 range.
+// Derived deterministically from the slug so a given item always keeps the
+// same price between reloads (rather than jumping around on each visit).
+function distributedPrice(slug: string): number {
+  let hash = 0
+  for (let i = 0; i < slug.length; i++) {
+    hash = (hash * 31 + slug.charCodeAt(i)) >>> 0
+  }
+  // 50.00 – 100.00 inclusive, rounded to whole kwacha
+  return 50 + (hash % 51)
+}
+
 onMounted(async () => {
   const [custRes, catRes] = await Promise.all([customersApi.list(), catalogApi.list()])
   customers.value = custRes.data.data ?? []
-  catalog.value = catRes.data.data ?? []
+  catalog.value = (catRes.data.data ?? []).map((item) => ({
+    ...item,
+    base_price: distributedPrice(item.slug),
+  }))
 })
 
 const filteredCustomers = computed(() => {
